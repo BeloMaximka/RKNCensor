@@ -1,9 +1,14 @@
 #pragma once
 #include <Windows.h>
 #include <windowsX.h>
+
 #include "..\rsc\resource.h"
+
+#include <regex>
 #include <tchar.h>
 #include <algorithm>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 class CensorDlg
 {
@@ -15,6 +20,9 @@ class CensorDlg
 	void AddWord(HWND hwnd);
 	void DeleteWord(HWND hwnd);
 	void ClearWords(HWND hwnd);
+
+	void ProcessFile(HWND hwnd, const wchar_t* path);
+	void ProcessDirectory(HWND hwnd, const wchar_t* path);
 public:
 	CensorDlg();
 	//~CensorDlg();

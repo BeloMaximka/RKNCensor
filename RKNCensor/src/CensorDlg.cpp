@@ -1,4 +1,7 @@
 #include "CensorDlg.h"
+#include <wow64apiset.h>
+#include <fstream>
+#include <string>
 
 CensorDlg* CensorDlg::ptr = NULL;
 
@@ -17,6 +20,7 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 	switch (id)
 	{
 	case IDC_ADDWORD_BTN:
+		ProcessFile(hwnd, L"D:\\Maxim");
 		AddWord(hwnd);
 		break;
 	case IDC_DELWORD:
@@ -64,6 +68,44 @@ void CensorDlg::DeleteWord(HWND hwnd)
 void CensorDlg::ClearWords(HWND hwnd)
 {
 	SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_RESETCONTENT, 0, 0);
+}
+
+void CensorDlg::ProcessFile(HWND hwnd, const wchar_t* path)
+{
+	std::wifstream file(path);
+	if (file.is_open())
+	{
+		CopyFile(path, L".\\copy.txt", FALSE);
+		std::wstring text;
+		file >> text;
+		std::wstring result;
+		std::regex e("\\b(sub)([^ ]*)");
+		auto sex = std::regex_replace(std::back_inserter(result), text.begin(), text.end(), e, "$2");
+	}
+}
+
+void CensorDlg::ProcessDirectory(HWND hwnd, const wchar_t* path)
+{
+	//PVOID OldValue = NULL;
+	//Wow64DisableWow64FsRedirection(&OldValue);
+	WIN32_FIND_DATAW wfd;
+	wchar_t* mask = new wchar_t[wcslen(path) + 6];
+	wsprintf(mask, TEXT("%s%s"), path, L"\\*.txt");
+	HANDLE const hFind = FindFirstFileW(mask, &wfd);
+	//setlocale(LC_ALL, "");
+
+	if (hFind != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+			wchar_t* filePath = new wchar_t[wcslen(path) + wcslen(wfd.cFileName) + 2];
+			wsprintf(filePath, TEXT("%s%s%s"), path, L"\\", wfd.cFileName);
+			ProcessFile(hwnd, filePath);
+			delete[] filePath;
+		} while (FindNextFile(hFind, &wfd));
+		FindClose(hFind);
+	}
+	delete[] mask;
 }
 
 CensorDlg::CensorDlg()
