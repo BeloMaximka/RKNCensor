@@ -26,8 +26,9 @@ void CensorDlg::AddWord(HWND hwnd)
 {
 	TCHAR word[256];
 	GetDlgItemText(hwnd, IDC_WORD_EDIT, word, 256);
-	if (_tcslen(word) && SendDlgItemMessage(hwnd, LB_FINDSTRINGEXACT, LB_ADDSTRING, -1, LPARAM(word)) == 0)
+	if (_tcslen(word) && SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_FINDSTRINGEXACT, -1, LPARAM(word)) == LB_ERR)
 	{
+		std::transform(word, word + 256, word, ::towlower);
 		SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_ADDSTRING, 0, LPARAM(word));
 	}
 }

@@ -3,6 +3,7 @@
 #include <windowsX.h>
 #include "..\rsc\resource.h"
 #include <tchar.h>
+#include <algorithm>
 
 class CensorDlg
 {
