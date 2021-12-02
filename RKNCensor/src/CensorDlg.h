@@ -13,6 +13,8 @@ class CensorDlg
 	void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify);
 
 	void AddWord(HWND hwnd);
+	void DeleteWord(HWND hwnd);
+	void ClearWords(HWND hwnd);
 public:
 	CensorDlg();
 	//~CensorDlg();
