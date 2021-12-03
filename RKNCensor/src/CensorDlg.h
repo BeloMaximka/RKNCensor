@@ -23,6 +23,9 @@ class CensorDlg
 
 	void ProcessFile(HWND hwnd, const wchar_t* path);
 	void ProcessDirectory(HWND hwnd, const wchar_t* path);
+
+	std::wregex MakeRegexFromList(HWND hwnd);
+	std::wregex regex;
 public:
 	CensorDlg();
 	//~CensorDlg();

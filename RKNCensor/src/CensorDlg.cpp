@@ -1,7 +1,9 @@
+#define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 #include "CensorDlg.h"
 #include <wow64apiset.h>
 #include <fstream>
 #include <string>
+#include <codecvt>
 
 CensorDlg* CensorDlg::ptr = NULL;
 
@@ -20,7 +22,7 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 	switch (id)
 	{
 	case IDC_ADDWORD_BTN:
-		ProcessFile(hwnd, L"D:\\Maxim");
+		
 		AddWord(hwnd);
 		break;
 	case IDC_DELWORD:
@@ -44,6 +46,11 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		EnableWindow(GetDlgItem(hwnd, IDC_DIR_EDIT), TRUE);
 		EnableWindow(GetDlgItem(hwnd, IDC_VIEWDIR_BTN), TRUE);
 		break;
+	case IDC_START_BTN:
+		TCHAR path[256];
+		GetDlgItemText(hwnd, IDC_DIR_EDIT, path, 256);
+		ProcessDirectory(hwnd, path);
+		break;
 	}
 }
 
@@ -60,7 +67,6 @@ void CensorDlg::AddWord(HWND hwnd)
 
 void CensorDlg::DeleteWord(HWND hwnd)
 {
-	TCHAR word[256];
 	int index = SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_GETCURSEL, 0, 0);
 	SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_DELETESTRING, WPARAM(index), 0);
 }
@@ -73,14 +79,24 @@ void CensorDlg::ClearWords(HWND hwnd)
 void CensorDlg::ProcessFile(HWND hwnd, const wchar_t* path)
 {
 	std::wifstream file(path);
+	std::locale ru(std::locale(), new std::codecvt_utf8<wchar_t, 0x10ffff, std::consume_header>{});
+	file.imbue(ru);
 	if (file.is_open())
 	{
-		CopyFile(path, L".\\copy.txt", FALSE);
-		std::wstring text;
-		file >> text;
-		std::wstring result;
-		std::regex e("\\b(sub)([^ ]*)");
-		auto sex = std::regex_replace(std::back_inserter(result), text.begin(), text.end(), e, "$2");
+		std::wstring file_name(path);
+		file_name.erase(0, file_name.find_last_of('\\'));
+		file_name.insert(file_name.begin(), '.');
+		CopyFile(path, file_name.c_str(), FALSE);
+		wchar_t text[256];
+		file.getline(text, 256);
+		std::wstring result = std::regex_replace(text, regex, L"$***");
+		file.close();
+
+		file_name.replace(file_name.end() - 4, file_name.end(),L"_new.txt");
+		std::wofstream new_file(file_name.c_str());
+		new_file.imbue(ru);
+		new_file << result;
+		new_file.close();
 	}
 }
 
@@ -89,13 +105,14 @@ void CensorDlg::ProcessDirectory(HWND hwnd, const wchar_t* path)
 	//PVOID OldValue = NULL;
 	//Wow64DisableWow64FsRedirection(&OldValue);
 	WIN32_FIND_DATAW wfd;
-	wchar_t* mask = new wchar_t[wcslen(path) + 6];
+	wchar_t* mask = new wchar_t[wcslen(path) + 8];
 	wsprintf(mask, TEXT("%s%s"), path, L"\\*.txt");
 	HANDLE const hFind = FindFirstFileW(mask, &wfd);
 	//setlocale(LC_ALL, "");
 
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
+		regex = MakeRegexFromList(hwnd);
 		do
 		{
 			wchar_t* filePath = new wchar_t[wcslen(path) + wcslen(wfd.cFileName) + 2];
@@ -106,6 +123,24 @@ void CensorDlg::ProcessDirectory(HWND hwnd, const wchar_t* path)
 		FindClose(hFind);
 	}
 	delete[] mask;
+}
+
+std::wregex CensorDlg::MakeRegexFromList(HWND hwnd)
+{
+	std::wstring regex;
+	WCHAR text[256];
+	int count = SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_GETCOUNT, 0, 0);
+	for (int i = 0; i < count; i++)
+	{
+		SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_GETTEXT, WPARAM(i), LPARAM(text));
+		regex += text;
+		regex += L"|";
+	}
+	if (regex.size())
+	{
+		regex.pop_back();
+	}
+	return std::wregex(regex, std::regex_constants::icase);
 }
 
 CensorDlg::CensorDlg()
