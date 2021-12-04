@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Russian (Russia) resources
+// Русский (Россия) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
 LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
@@ -70,7 +70,7 @@ BEGIN
     PUSHBUTTON      "Продолжить",IDC_CONTINUE_BTN,168,246,50,14,WS_DISABLED
     PUSHBUTTON      "Старт",IDC_START_BTN,6,246,50,14
     LISTBOX         IDC_OUTPUT_LIST,132,108,132,84,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,6,222,264,14
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",PBS_SMOOTH | WS_BORDER,6,222,264,14
     DEFPUSHBUTTON   "Обзор...",IDC_VIEWDIR_BTN,214,72,50,14,WS_DISABLED
     GROUPBOX        "Отчёт",IDC_OUTPUT_GROUP,126,96,144,102
     GROUPBOX        "Список запрещенных слов",IDC_WORDS_GROUP,6,6,114,210
@@ -110,7 +110,7 @@ BEGIN
     0
 END
 
-#endif    // Russian (Russia) resources
+#endif    // Русский (Россия) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

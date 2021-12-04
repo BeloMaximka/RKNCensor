@@ -12,6 +12,7 @@ void CensorDlg::OnClose(HWND hwnd)
 
 BOOL CensorDlg::OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 {
+	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETBARCOLOR, 0, LPARAM(RGB(0, 200, 0)));
 	return TRUE;
 }
 
@@ -179,6 +180,18 @@ void CensorDlg::ProcessFile(HWND hwnd, const wchar_t* path)
 
 void CensorDlg::ProcessDirectory(HWND hwnd, const wchar_t* path)
 {
+	std::vector<std::wstring> files;
+	GetFileListFromDirectory(path, files);
+	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETRANGE, 0, MAKELPARAM(0, files.size()));
+	for (int i = 0; i < files.size(); i++)
+	{
+		ProcessFile(hwnd, files[i].c_str());
+		SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETPOS, WPARAM(i + 1), 0);
+	}
+}
+
+void CensorDlg::GetFileListFromDirectory(const wchar_t* path, std::vector<std::wstring>& files)
+{
 	//Wow64DisableWow64FsRedirection(&OldValue);
 	WIN32_FIND_DATAW wfd;
 	wchar_t* mask = new wchar_t[wcslen(path) + 8];
@@ -191,7 +204,7 @@ void CensorDlg::ProcessDirectory(HWND hwnd, const wchar_t* path)
 		{
 			wchar_t* filePath = new wchar_t[wcslen(path) + wcslen(wfd.cFileName) + 2];
 			wsprintf(filePath, TEXT("%s%s%s"), path, L"\\", wfd.cFileName);
-			ProcessFile(hwnd, filePath);
+			files.push_back(filePath);
 			delete[] filePath;
 		} while (FindNextFile(hFind, &wfd));
 		FindClose(hFind);

@@ -11,7 +11,9 @@
 #include <vector>
 #include <map>
 #include <string>
-namespace fs = std::filesystem;
+
+#include <commctrl.h>
+#pragma comment(lib,"comctl32")
 
 class CensorDlg
 {
@@ -28,6 +30,8 @@ class CensorDlg
 	bool CensorText(wchar_t* text);
 	void ProcessFile(HWND hwnd, const wchar_t* path);
 	void ProcessDirectory(HWND hwnd, const wchar_t* path);
+
+	void GetFileListFromDirectory(const wchar_t* path, std::vector<std::wstring>& files);
 
 	std::vector<std::wstring> words;
 	std::map<std::wstring, int> top;
