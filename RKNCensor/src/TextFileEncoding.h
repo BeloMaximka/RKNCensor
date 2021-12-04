@@ -5,6 +5,7 @@
 #include <locale>
 #include <codecvt>
 
+// check string for illegal UTF8 byte sequences
 bool isValidUTF8(const char* string)
 {
 	if (!string)
@@ -91,16 +92,17 @@ CHARACTER_ENCODING getTextFileEncoding(const wchar_t* filename)
 		return encoding;
 	}
 	BYTE* lpHeader = new BYTE[2];
-	ReadFile(hFile, lpHeader, 2, &dwBytesRead, NULL);
+	ReadFile(hFile, lpHeader, 2, &dwBytesRead, NULL); // read BOM
 	CloseHandle(hFile);
 
+	// check BOM
 	if (lpHeader[0] == uniTxt[0] && lpHeader[1] == uniTxt[1])// Unicode file
 		encoding = CHARACTER_ENCODING::UTF16_LE;
 	else if (lpHeader[0] == endianTxt[0] && lpHeader[1] == endianTxt[1])//  Unicode big endian file
 		encoding = CHARACTER_ENCODING::UTF16_BE;
 	else if (lpHeader[0] == utf8Txt[0] && lpHeader[1] == utf8Txt[1])// UTF-8 file
 		encoding = CHARACTER_ENCODING::UTF8_BOM;
-	else
+	else // check encodings without BOM
 	{
 
 		HANDLE hFile = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);

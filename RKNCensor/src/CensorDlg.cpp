@@ -113,9 +113,11 @@ bool CensorDlg::CensorText(wchar_t* text)
 		{
 			for (auto& temp : words)
 			{
+				// first letter match
 				if (temp[0] == ch)
 				{
 					mismatch = false;
+					// check other letters
 					for (int j = 1; j < temp.size(); j++)
 					{
 						ch = towlower(text[i + j]);
@@ -129,8 +131,9 @@ bool CensorDlg::CensorText(wchar_t* text)
 					{
 						replacement = true;
 						top[temp]++;
+						// replace with *
 						wmemset(&text[i], L'*', temp.size());
-						i += temp.size();
+						i += temp.size(); // move i to next symbols
 						break;
 					}
 				}
@@ -142,22 +145,24 @@ bool CensorDlg::CensorText(wchar_t* text)
 
 void CensorDlg::ProcessFile(HWND hwnd, const wchar_t* path)
 {
-	std::locale out_loc;
-	std::wifstream file = openTextFile(path, out_loc);
-	int id = file_id++;
+	std::locale out_loc; // get locale from src file
+	std::wifstream file = openTextFile(path, out_loc); // open with correct locale
+	int id = file_id++; // unique id to avoid overwrite
 	if (file.is_open())
 	{
+		// path to filename.cpy.txt
 		std::wstring file_name(path);
 		file_name.erase(0, file_name.find_last_of('\\') + 1);
 		std::wstring id_str = std::to_wstring(id) + L'.';
 		file_name.insert(file_name.begin(), id_str.begin(), id_str.end());
 		file_name.replace(file_name.end() - 4, file_name.end(), L".cpy.txt");
 		std::wofstream cpy_file(file_name.c_str());
-		cpy_file.imbue(out_loc);
+
+		cpy_file.imbue(out_loc); // locale for copy
 
 		bool replacement = false;
 		std::wstring result;
-		while (getline(file, result))
+		while (getline(file, result)) // main loop
 		{
 			if (!replacement)
 				replacement = CensorText(&result[0]);
@@ -172,6 +177,7 @@ void CensorDlg::ProcessFile(HWND hwnd, const wchar_t* path)
 			DeleteFile(file_name.c_str());
 		else
 		{
+			// filename.cpy.txt -> filename.txt
 			file_name.replace(file_name.end() - 8, file_name.end(), L".txt");
 			CopyFile(path, file_name.c_str(), FALSE);
 		}
