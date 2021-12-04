@@ -8,6 +8,9 @@
 #include <tchar.h>
 #include <algorithm>
 #include <filesystem>
+#include <vector>
+#include <map>
+#include <string>
 namespace fs = std::filesystem;
 
 class CensorDlg
@@ -20,12 +23,15 @@ class CensorDlg
 	void AddWord(HWND hwnd);
 	void DeleteWord(HWND hwnd);
 	void ClearWords(HWND hwnd);
+	void MakeWordList(HWND hwnd);
 
+	bool CensorText(wchar_t* text);
 	void ProcessFile(HWND hwnd, const wchar_t* path);
 	void ProcessDirectory(HWND hwnd, const wchar_t* path);
 
-	std::wregex MakeRegexFromList(HWND hwnd);
-	std::wregex regex;
+	std::vector<std::wstring> words;
+	std::map<std::wstring, int> top;
+	int file_id;
 public:
 	CensorDlg();
 	//~CensorDlg();
