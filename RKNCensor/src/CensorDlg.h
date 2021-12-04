@@ -31,7 +31,7 @@ class CensorDlg
 	void ProcessFile(HWND hwnd, const wchar_t* path);
 	void ProcessDirectory(HWND hwnd, const wchar_t* path);
 
-	void GetFileListFromDirectory(const wchar_t* path, std::vector<std::wstring>& files);
+	std::vector<std::wstring> GetFileListFromDirectory(const wchar_t* path, bool recursive = true);
 
 	std::vector<std::wstring> words;
 	std::map<std::wstring, int> top;

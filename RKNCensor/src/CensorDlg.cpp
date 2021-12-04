@@ -186,8 +186,7 @@ void CensorDlg::ProcessFile(HWND hwnd, const wchar_t* path)
 
 void CensorDlg::ProcessDirectory(HWND hwnd, const wchar_t* path)
 {
-	std::vector<std::wstring> files;
-	GetFileListFromDirectory(path, files);
+	std::vector<std::wstring> files = GetFileListFromDirectory(path);
 	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETRANGE, 0, MAKELPARAM(0, files.size()));
 	for (int i = 0; i < files.size(); i++)
 	{
@@ -196,26 +195,49 @@ void CensorDlg::ProcessDirectory(HWND hwnd, const wchar_t* path)
 	}
 }
 
-void CensorDlg::GetFileListFromDirectory(const wchar_t* path, std::vector<std::wstring>& files)
+std::vector<std::wstring> CensorDlg::GetFileListFromDirectory(const wchar_t* path, bool recursive)
 {
 	//Wow64DisableWow64FsRedirection(&OldValue);
+	std::vector<std::wstring> files;
 	WIN32_FIND_DATAW wfd;
-	wchar_t* mask = new wchar_t[wcslen(path) + 8];
-	wsprintf(mask, TEXT("%s%s"), path, L"\\*.txt");
+	wchar_t* mask = new wchar_t[wcslen(path) + 4];
+	wsprintf(mask, TEXT("%s%s"), path, L"\\*");
 	HANDLE const hFind = FindFirstFileW(mask, &wfd);
+	delete[] mask;
 
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
 		do
 		{
-			wchar_t* filePath = new wchar_t[wcslen(path) + wcslen(wfd.cFileName) + 2];
-			wsprintf(filePath, TEXT("%s%s%s"), path, L"\\", wfd.cFileName);
-			files.push_back(filePath);
-			delete[] filePath;
+			if (wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			{
+				if (wcscmp(wfd.cFileName, L".") && wcscmp(wfd.cFileName, L"..") && (recursive))
+				{
+
+					wchar_t* filePath = new wchar_t[wcslen(path) + wcslen(wfd.cFileName) + 2];
+					wsprintf(filePath, L"%s%s%s", path, L"\\", wfd.cFileName);
+					std::vector<std::wstring> add = GetFileListFromDirectory(filePath);
+					delete[] filePath;
+
+					if (add.size())
+					{
+						//files.resize(files.size() + add.size());
+						files.insert(files.end(), add.begin(), add.end());
+					}
+				}
+			}
+			else if (wcslen(wfd.cFileName) >= 4 && !wcscmp(wfd.cFileName + wcslen(wfd.cFileName) - 4, L".txt"))
+			{
+				wchar_t* filePath = new wchar_t[wcslen(path) + wcslen(wfd.cFileName) + 2];
+				wsprintf(filePath, L"%s%s%s", path, L"\\", wfd.cFileName);
+				files.push_back(filePath);
+				delete[] filePath;
+			}
 		} while (FindNextFile(hFind, &wfd));
 		FindClose(hFind);
 	}
-	delete[] mask;
+	
+	return files;
 }
 
 CensorDlg::CensorDlg()
