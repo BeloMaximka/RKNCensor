@@ -12,6 +12,8 @@ void CensorDlg::OnClose(HWND hwnd)
 
 BOOL CensorDlg::OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 {
+	cores = std::thread::hardware_concurrency();
+	threads = new std::thread[cores];
 	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETBARCOLOR, 0, LPARAM(RGB(0, 200, 0)));
 	return TRUE;
 }
@@ -48,6 +50,9 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 	case IDC_START_BTN:
 		top.clear();
 		file_id = 0;
+		progress = 0;
+		SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETPOS, WPARAM(0), 0);
+
 		MakeWordList(hwnd);
 		TCHAR path[256];
 		GetDlgItemText(hwnd, IDC_DIR_EDIT, path, 256);
@@ -143,11 +148,11 @@ bool CensorDlg::CensorText(wchar_t* text)
 	return replacement;
 }
 
-void CensorDlg::ProcessFile(HWND hwnd, const wchar_t* path)
+void CensorDlg::ProcessFile(const wchar_t* path)
 {
 	std::locale out_loc; // get locale from src file
 	std::wifstream file = openTextFile(path, out_loc); // open with correct locale
-	int id = file_id++; // unique id to avoid overwrite
+	int id = InterlockedAdd(&file_id, 1); // unique id to avoid overwrite
 	if (file.is_open())
 	{
 		// path to filename.cpy.txt
@@ -184,21 +189,82 @@ void CensorDlg::ProcessFile(HWND hwnd, const wchar_t* path)
 	}
 }
 
-void CensorDlg::ProcessDirectory(HWND hwnd, const wchar_t* path)
+void CensorDlg::ProcessFiles(HWND hwnd, std::vector<std::wstring> files)
 {
-	std::vector<std::wstring> files = GetFileListFromDirectory(path);
-	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETRANGE, 0, MAKELPARAM(0, files.size()));
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
 	for (int i = 0; i < files.size(); i++)
 	{
-		ProcessFile(hwnd, files[i].c_str());
-		SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETPOS, WPARAM(i + 1), 0);
+		ProcessFile(files[i].c_str());
+		//WaitForSingleObject(mutex_progress, INFINITE);
+		//mutex_progress = CreateMutex(NULL, TRUE, NULL);
+		//progress++;
+		InterlockedIncrement(&progress);
+		PostMessage(GetDlgItem(hwnd, IDC_PROGRESS1), PBM_SETPOS, WPARAM(progress), 0);
+		
+		//SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETPOS, WPARAM(progress), 0);
+		//ReleaseMutex(mutex_progress);
 	}
 }
 
-std::vector<std::wstring> CensorDlg::GetFileListFromDirectory(const wchar_t* path, bool recursive)
+void CensorDlg::ProcessDirectory(HWND hwnd, const wchar_t* path)
+{
+	FilesList files = GetFileListFromDirectory(path);
+	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETRANGE, 0, MAKELPARAM(0, files.size()));
+	if (cores == 1)
+	{
+		for (int i = 0; i < files.size(); i++)
+		{
+			ProcessFile(std::get<std::wstring>(files[i]).c_str());
+			SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETPOS, WPARAM(++progress), 0);
+		}
+		return;
+	}
+	
+	for (int i = 0; i < cores; i++)
+	{
+		if (threads[i].joinable())
+		{
+			threads[i].join();
+		}
+	}
+	std::sort(files.begin(), files.end()); // sort by filesize
+
+	std::vector<std::vector<std::wstring>> portions;
+	portions.resize(cores);
+	bool reversed = false;
+	while (files.size())
+	{
+		int count = files.size() < cores ? files.size() : cores;
+		if (reversed)
+		{
+			for (int i = 0; i < count; i++)
+			{
+				portions[i].push_back(std::get<std::wstring>(*(files.end() - 1)));
+				files.erase(files.end() - 1);
+			}
+			reversed = false;
+		}
+		else
+		{
+			for (int i = 0; i < count; i++)
+			{
+				portions[i].push_back(std::get<std::wstring>(files[0]));
+				files.erase(files.begin());
+			}
+			reversed = true;
+		}
+	}
+	for (int i = 0; i < cores; i++)
+	{
+		threads[i] = std::thread(&CensorDlg::ProcessFiles, this, hwnd, portions[i]);
+		portions[i].clear();
+	}
+}
+
+CensorDlg::FilesList CensorDlg::GetFileListFromDirectory(const wchar_t* path, bool recursive)
 {
 	//Wow64DisableWow64FsRedirection(&OldValue);
-	std::vector<std::wstring> files;
+	FilesList files;
 	WIN32_FIND_DATAW wfd;
 	wchar_t* mask = new wchar_t[wcslen(path) + 4];
 	wsprintf(mask, TEXT("%s%s"), path, L"\\*");
@@ -216,7 +282,7 @@ std::vector<std::wstring> CensorDlg::GetFileListFromDirectory(const wchar_t* pat
 
 					wchar_t* filePath = new wchar_t[wcslen(path) + wcslen(wfd.cFileName) + 2];
 					wsprintf(filePath, L"%s%s%s", path, L"\\", wfd.cFileName);
-					std::vector<std::wstring> add = GetFileListFromDirectory(filePath);
+					FilesList add = GetFileListFromDirectory(filePath);
 					delete[] filePath;
 
 					if (add.size())
@@ -230,7 +296,12 @@ std::vector<std::wstring> CensorDlg::GetFileListFromDirectory(const wchar_t* pat
 			{
 				wchar_t* filePath = new wchar_t[wcslen(path) + wcslen(wfd.cFileName) + 2];
 				wsprintf(filePath, L"%s%s%s", path, L"\\", wfd.cFileName);
-				files.push_back(filePath);
+
+				HANDLE hFile = CreateFile(filePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+				int size = GetFileSize(hFile, NULL);
+				CloseHandle(hFile);
+
+				files.push_back(std::make_pair(size, filePath));
 				delete[] filePath;
 			}
 		} while (FindNextFile(hFind, &wfd));
