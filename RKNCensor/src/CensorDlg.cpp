@@ -23,10 +23,11 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 	switch (id)
 	{
 	case IDC_ADDWORD_BTN:
-		
 		AddWord(hwnd);
 		break;
 	case IDC_DELWORD:
+		//SendDlgItemMessage(hwnd, IDC_OUTPUT_LIST, LB_DELETESTRING, WPARAM(0), 0);
+		//SendDlgItemMessage(hwnd, IDC_OUTPUT_LIST, LB_INSERTSTRING, WPARAM(0), LPARAM(L"ÎÁÐÀÁÎÒÊÀ..."));
 		DeleteWord(hwnd);
 		break;
 	case IDC_CLEARLIST_BTN:
@@ -179,7 +180,7 @@ void CensorDlg::ProcessFile(const wchar_t* path)
 		cpy_file.close();
 		
 		if (!replacement)
-			DeleteFile(file_name.c_str());
+			_wunlink(file_name.c_str());
 		else
 		{
 			// filename.cpy.txt -> filename.txt
@@ -195,14 +196,8 @@ void CensorDlg::ProcessFiles(HWND hwnd, std::vector<std::wstring> files)
 	for (int i = 0; i < files.size(); i++)
 	{
 		ProcessFile(files[i].c_str());
-		//WaitForSingleObject(mutex_progress, INFINITE);
-		//mutex_progress = CreateMutex(NULL, TRUE, NULL);
-		//progress++;
 		InterlockedIncrement(&progress);
 		PostMessage(GetDlgItem(hwnd, IDC_PROGRESS1), PBM_SETPOS, WPARAM(progress), 0);
-		
-		//SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETPOS, WPARAM(progress), 0);
-		//ReleaseMutex(mutex_progress);
 	}
 }
 
