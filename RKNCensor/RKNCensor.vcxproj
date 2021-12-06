@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClInclude Include="rsc\resource.h" />
     <ClInclude Include="src\CensorDlg.h" />
+    <ClInclude Include="src\MFTscan.h" />
     <ClInclude Include="src\TextFileEncoding.h" />
   </ItemGroup>
   <ItemGroup>

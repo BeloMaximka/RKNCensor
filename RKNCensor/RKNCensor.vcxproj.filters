@@ -24,6 +24,9 @@
     <ClInclude Include="src\TextFileEncoding.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\MFTscan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
