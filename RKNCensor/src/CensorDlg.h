@@ -34,7 +34,7 @@ class CensorDlg
 	bool CensorText(wchar_t* text);
 	void ProcessFile(const wchar_t* path);
 	void ProcessFiles(HWND hwnd, std::vector<std::wstring> files);
-	void ProcessDirectory(HWND hwnd, const wchar_t* path);
+	void ProcessDirectory(HWND hwnd, std::wstring path);
 
 	FilesList GetFileListFromDirectory(const wchar_t* path, bool recursive = true);
 
@@ -45,7 +45,13 @@ class CensorDlg
 	unsigned int progress;
 	HANDLE mutex_progress;
 	std::thread* threads;
+	std::thread timer_thread;
+	unsigned int timer_exit;
+	std::thread process_thread;
 	unsigned int cores;
+
+	void Timer(HWND hwnd);
+	HWND output;
 public:
 	CensorDlg();
 	//~CensorDlg();

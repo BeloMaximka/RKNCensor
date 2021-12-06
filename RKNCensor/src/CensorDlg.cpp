@@ -1,6 +1,7 @@
 #define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 #include "CensorDlg.h"
 #include <wow64apiset.h>
+#include <chrono>
 #include "TextFileEncoding.h"
 
 CensorDlg* CensorDlg::ptr = NULL;
@@ -12,6 +13,7 @@ void CensorDlg::OnClose(HWND hwnd)
 
 BOOL CensorDlg::OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 {
+	output = GetDlgItem(hwnd, IDC_OUTPUT_LIST);
 	cores = std::thread::hardware_concurrency();
 	threads = new std::thread[cores];
 	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETBARCOLOR, 0, LPARAM(RGB(0, 200, 0)));
@@ -49,15 +51,24 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		EnableWindow(GetDlgItem(hwnd, IDC_VIEWDIR_BTN), TRUE);
 		break;
 	case IDC_START_BTN:
+		if (process_thread.get_id() != std::thread::id())
+		{
+			return;
+		}
 		top.clear();
 		file_id = 0;
 		progress = 0;
 		SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETPOS, WPARAM(0), 0);
+		SendMessage(output, LB_INSERTSTRING, WPARAM(0), LPARAM(L"S"));
+		SendMessage(output, LB_INSERTSTRING, WPARAM(1), LPARAM(L"S"));
+		SendMessage(output, LB_INSERTSTRING, WPARAM(2), LPARAM(L"S"));
+		timer_thread = std::thread(&CensorDlg::Timer, this, hwnd);
 
 		MakeWordList(hwnd);
-		TCHAR path[256];
+		WCHAR path[256];
 		GetDlgItemText(hwnd, IDC_DIR_EDIT, path, 256);
-		ProcessDirectory(hwnd, path);
+		std::wstring temp = path;
+		process_thread = std::thread(&CensorDlg::ProcessDirectory, this, hwnd, temp);
 		break;
 	}
 }
@@ -178,7 +189,7 @@ void CensorDlg::ProcessFile(const wchar_t* path)
 		}
 		file.close();
 		cpy_file.close();
-		
+
 		if (!replacement)
 			_wunlink(file_name.c_str());
 		else
@@ -201,10 +212,14 @@ void CensorDlg::ProcessFiles(HWND hwnd, std::vector<std::wstring> files)
 	}
 }
 
-void CensorDlg::ProcessDirectory(HWND hwnd, const wchar_t* path)
+void CensorDlg::ProcessDirectory(HWND hwnd, std::wstring path)
 {
-	FilesList files = GetFileListFromDirectory(path);
+	FilesList files = GetFileListFromDirectory(path.c_str());
 	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETRANGE, 0, MAKELPARAM(0, files.size()));
+	wchar_t timer[128];
+	wsprintf(timer, L"Обработано файлов: 0 их %d", files.size());
+	SendMessage(output, LB_DELETESTRING, WPARAM(1), 0);
+	SendMessage(output, LB_INSERTSTRING, WPARAM(1), LPARAM(timer));
 	if (cores == 1)
 	{
 		for (int i = 0; i < files.size(); i++)
@@ -214,7 +229,7 @@ void CensorDlg::ProcessDirectory(HWND hwnd, const wchar_t* path)
 		}
 		return;
 	}
-	
+
 	for (int i = 0; i < cores; i++)
 	{
 		if (threads[i].joinable())
@@ -254,6 +269,13 @@ void CensorDlg::ProcessDirectory(HWND hwnd, const wchar_t* path)
 		threads[i] = std::thread(&CensorDlg::ProcessFiles, this, hwnd, portions[i]);
 		portions[i].clear();
 	}
+	for (int i = 0; i < cores; i++)
+	{
+		threads[i].join();
+	}
+	TerminateThread(timer_thread.native_handle(), 0);
+	timer_thread.detach();
+	process_thread.detach();
 }
 
 CensorDlg::FilesList CensorDlg::GetFileListFromDirectory(const wchar_t* path, bool recursive)
@@ -302,8 +324,31 @@ CensorDlg::FilesList CensorDlg::GetFileListFromDirectory(const wchar_t* path, bo
 		} while (FindNextFile(hFind, &wfd));
 		FindClose(hFind);
 	}
-	
+
 	return files;
+}
+
+void CensorDlg::Timer(HWND hwnd)
+{
+	using namespace std;
+	typedef chrono::high_resolution_clock Time;
+	typedef chrono::seconds sec;
+	typedef chrono::duration<float> duration;
+	auto start = Time::now();
+	while (true)
+	{
+		auto current = Time::now();
+		duration fs = current - start;
+		sec dur = std::chrono::duration_cast<sec>(fs);
+		uint32_t hh = dur.count() / 3600;
+		uint32_t mm = (dur.count() % 3600) / 60;
+		uint32_t ss = (dur.count() % 3600) % 60;
+		wchar_t timer[25];
+		wsprintf(timer, L"Прошло времени: %02d:%02d:%02d", hh, mm, ss);
+		SendMessage(output, LB_DELETESTRING, WPARAM(2), 0);
+		SendMessage(output, LB_INSERTSTRING, WPARAM(2), LPARAM(timer));
+		std::this_thread::sleep_for(1s);
+	}
 }
 
 CensorDlg::CensorDlg()
