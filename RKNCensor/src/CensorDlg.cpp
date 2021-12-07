@@ -5,17 +5,17 @@
 #include "TextFileEncoding.h"
 
 CensorDlg* CensorDlg::ptr = NULL;
+HBRUSH CensorDlg::CensorDlg::brush = CreateSolidBrush(RGB(255, 255, 255));
 
 void CensorDlg::OnClose(HWND hwnd)
 {
+	DeleteObject(brush);
 	EndDialog(hwnd, 0);
 }
 
 BOOL CensorDlg::OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 {
 	output = GetDlgItem(hwnd, IDC_OUTPUT_LIST);
-	cores = std::thread::hardware_concurrency();
-	threads = new std::thread[cores];
 	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETBARCOLOR, 0, LPARAM(RGB(0, 200, 0)));
 	return TRUE;
 }
@@ -59,7 +59,7 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		file_id = 0;
 		progress = 0;
 		SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETPOS, WPARAM(0), 0);
-		SendMessage(output, LB_INSERTSTRING, WPARAM(0), LPARAM(L"S"));
+		SendMessage(output, LB_INSERTSTRING, WPARAM(0), LPARAM(L"Œ¡–¿¡Œ“ ¿..."));
 		SendMessage(output, LB_INSERTSTRING, WPARAM(1), LPARAM(L"S"));
 		SendMessage(output, LB_INSERTSTRING, WPARAM(2), LPARAM(L"S"));
 		timer_thread = std::thread(&CensorDlg::Timer, this, hwnd);
@@ -135,7 +135,7 @@ bool CensorDlg::CensorText(wchar_t* text)
 				{
 					mismatch = false;
 					// check other letters
-					for (int j = 1; j < temp.size(); j++)
+					for (size_t j = 1; j < temp.size(); j++)
 					{
 						ch = towlower(text[i + j]);
 						if (temp[j] != ch)
@@ -204,7 +204,7 @@ void CensorDlg::ProcessFile(const wchar_t* path)
 void CensorDlg::ProcessFiles(HWND hwnd, std::vector<std::wstring> files)
 {
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
-	for (int i = 0; i < files.size(); i++)
+	for (size_t i = 0; i < files.size(); i++)
 	{
 		ProcessFile(files[i].c_str());
 		InterlockedIncrement(&progress);
@@ -222,7 +222,7 @@ void CensorDlg::ProcessDirectory(HWND hwnd, std::wstring path)
 	SendMessage(output, LB_INSERTSTRING, WPARAM(1), LPARAM(timer));
 	if (cores == 1)
 	{
-		for (int i = 0; i < files.size(); i++)
+		for (size_t i = 0; i < files.size(); i++)
 		{
 			ProcessFile(std::get<std::wstring>(files[i]).c_str());
 			SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETPOS, WPARAM(++progress), 0);
@@ -230,7 +230,7 @@ void CensorDlg::ProcessDirectory(HWND hwnd, std::wstring path)
 		return;
 	}
 
-	for (int i = 0; i < cores; i++)
+	for (size_t i = 0; i < cores; i++)
 	{
 		if (threads[i].joinable())
 		{
@@ -264,12 +264,12 @@ void CensorDlg::ProcessDirectory(HWND hwnd, std::wstring path)
 			reversed = true;
 		}
 	}
-	for (int i = 0; i < cores; i++)
+	for (size_t i = 0; i < cores; i++)
 	{
 		threads[i] = std::thread(&CensorDlg::ProcessFiles, this, hwnd, portions[i]);
 		portions[i].clear();
 	}
-	for (int i = 0; i < cores; i++)
+	for (size_t i = 0; i < cores; i++)
 	{
 		threads[i].join();
 	}
@@ -353,6 +353,8 @@ void CensorDlg::Timer(HWND hwnd)
 
 CensorDlg::CensorDlg()
 {
+	cores = std::thread::hardware_concurrency();
+	threads = new std::thread[cores];
 	ptr = this;
 }
 
@@ -363,6 +365,14 @@ BOOL CensorDlg::DlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		HANDLE_MSG(hwnd, WM_CLOSE, ptr->OnClose);
 		HANDLE_MSG(hwnd, WM_INITDIALOG, ptr->OnInitDialog);
 		HANDLE_MSG(hwnd, WM_COMMAND, ptr->Cls_OnCommand);
+	case WM_CTLCOLORLISTBOX:
+		if ((HWND)lParam == GetDlgItem(hwnd, IDC_CENSOR_LIST))
+		{
+			SetTextColor((HDC)wParam, RGB(180, 0, 0));
+			return (INT_PTR)brush;
+		}
+		break;
 	}
+	
 	return FALSE;
 }

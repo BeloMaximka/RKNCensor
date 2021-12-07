@@ -18,6 +18,7 @@
 
 class CensorDlg
 {
+	static HBRUSH brush;
 	// pairs of size and filepath
 	typedef std::vector<std::pair<int, std::wstring>> FilesList;
 
