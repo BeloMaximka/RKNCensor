@@ -207,19 +207,30 @@ void CensorDlg::ProcessFiles(HWND hwnd, std::vector<std::wstring> files)
 	for (size_t i = 0; i < files.size(); i++)
 	{
 		ProcessFile(files[i].c_str());
-		InterlockedIncrement(&progress);
+		int prog = InterlockedAdd(&progress, 1);
+		wchar_t str[64];
+		wsprintf(str, L"Обработано файлов: %d их %d", prog, files_count);
+		WaitForSingleObject(mutex_output, INFINITE);
+		mutex_output = CreateMutex(NULL, TRUE, NULL);
+		SendMessage(output, LB_DELETESTRING, WPARAM(1), 0);
+		SendMessage(output, LB_INSERTSTRING, WPARAM(1), LPARAM(str));
+		ReleaseMutex(output);
 		PostMessage(GetDlgItem(hwnd, IDC_PROGRESS1), PBM_SETPOS, WPARAM(progress), 0);
 	}
 }
 
 void CensorDlg::ProcessDirectory(HWND hwnd, std::wstring path)
 {
-	FilesList files = GetFileListFromDirectory(path.c_str());
-	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETRANGE, 0, MAKELPARAM(0, files.size()));
-	wchar_t timer[128];
-	wsprintf(timer, L"Обработано файлов: 0 их %d", files.size());
 	SendMessage(output, LB_DELETESTRING, WPARAM(1), 0);
-	SendMessage(output, LB_INSERTSTRING, WPARAM(1), LPARAM(timer));
+	SendMessage(output, LB_INSERTSTRING, WPARAM(1), LPARAM(L"Обработано файлов: 0 из..."));
+	FilesList files = GetFileListFromDirectory(path.c_str());
+	files_count = files.size();
+	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETRANGE, 0, MAKELPARAM(0, files.size()));
+	
+	wchar_t str[64];
+	wsprintf(str, L"Обработано файлов: 0 их %d", files_count);
+	SendMessage(output, LB_DELETESTRING, WPARAM(1), 0);
+	SendMessage(output, LB_INSERTSTRING, WPARAM(1), LPARAM(str));
 	if (cores == 1)
 	{
 		for (size_t i = 0; i < files.size(); i++)
@@ -345,8 +356,11 @@ void CensorDlg::Timer(HWND hwnd)
 		uint32_t ss = (dur.count() % 3600) % 60;
 		wchar_t timer[25];
 		wsprintf(timer, L"Прошло времени: %02d:%02d:%02d", hh, mm, ss);
+		WaitForSingleObject(mutex_output, INFINITE);
+		mutex_output = CreateMutex(NULL, TRUE, NULL);
 		SendMessage(output, LB_DELETESTRING, WPARAM(2), 0);
 		SendMessage(output, LB_INSERTSTRING, WPARAM(2), LPARAM(timer));
+		ReleaseMutex(output);
 		std::this_thread::sleep_for(1s);
 	}
 }

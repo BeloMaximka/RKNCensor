@@ -43,14 +43,14 @@ class CensorDlg
 	std::map<std::wstring, int> top;
 
 	LONG file_id = 1;
-	unsigned int progress;
-	HANDLE mutex_progress;
+	LONG progress;
+	HANDLE mutex_output;
 	std::thread* threads;
 	std::thread timer_thread;
 	unsigned int timer_exit;
 	std::thread process_thread;
 	unsigned int cores;
-
+	unsigned int files_count = 0;
 	void Timer(HWND hwnd);
 	HWND output;
 public:
