@@ -17,6 +17,10 @@ BOOL CensorDlg::OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 {
 	output_list = GetDlgItem(hwnd, IDC_OUTPUT_LIST);
 	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETBARCOLOR, 0, LPARAM(RGB(0, 200, 0)));
+
+	WCHAR path[256];
+	GetCurrentDirectory(256, path);
+	SetWindowText(GetDlgItem(hwnd, IDC_OUTDIR_EDIT), path);
 	return TRUE;
 }
 
@@ -49,8 +53,6 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		EnableWindow(GetDlgItem(hwnd, IDC_VIEWDIR_BTN), TRUE);
 		break;
 	case IDC_START_BTN:
-		if (process_thread.get_id() != std::thread::id())
-			return;
 		top.clear();
 		file_id = 0;
 		progress = 0;
@@ -62,8 +64,9 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		WCHAR path[256];
 		GetDlgItemText(hwnd, IDC_DIR_EDIT, path, 256);
 
-		timer_thread = std::thread(&CensorDlg::Timer, this, hwnd);
 		PrintIntOutputList(0, L"ПОЛУЧЕНИЕ СПИСКА ФАЙЛОВ...");
+		timer_thread = std::thread(&CensorDlg::Timer, this, hwnd);
+		out_path = getOutPath(hwnd);
 		FilesList files = GetFileListFromDirectory(path);
 		process_thread = std::thread(&CensorDlg::ProcessFilesList, this, hwnd, std::move(files));
 		EnableWindow(GetDlgItem(hwnd, IDC_START_BTN), FALSE); // disable start button
@@ -103,6 +106,28 @@ void CensorDlg::MakeWordList(HWND hwnd)
 		SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_GETTEXT, WPARAM(i), LPARAM(text));
 		words.push_back(text);
 	}
+}
+
+std::wstring CensorDlg::getOutPath(HWND hwnd)
+{
+	WCHAR path[288];
+	GetDlgItemText(hwnd, IDC_OUTDIR_EDIT, path, 256);
+	int size = wcslen(path);
+	if (size)
+	{
+		if (path[size] != '\\' && path[size] != '/')
+			path[size] = '\\';
+		path[size+1] = 0;
+		WCHAR time_str[32];
+		time_t rawtime = time(0);
+		tm time;
+		localtime_s(&time, &rawtime);
+		wcsftime(time_str, 32, L"out-%d-%m-%Y-%H-%M-%S\\", &time);
+		wcscpy_s(path + size + 1, 288 - size - 1, time_str);
+		CreateDirectory(path, NULL);
+		return(path);
+	}
+	return std::wstring();
 }
 
 bool CensorDlg::CensorText(wchar_t* text)
@@ -171,6 +196,7 @@ void CensorDlg::ProcessFile(const wchar_t* path)
 		std::wstring id_str = std::to_wstring(id) + L'.';
 		file_name.insert(file_name.begin(), id_str.begin(), id_str.end());
 		file_name.replace(file_name.end() - 4, file_name.end(), L".cpy.txt");
+		file_name.insert(0, out_path);
 		std::wofstream cpy_file(file_name.c_str());
 
 		cpy_file.imbue(out_loc); // locale for copy
@@ -265,7 +291,7 @@ void CensorDlg::ProcessFilesList(HWND hwnd, FilesList files)
 	kill_thread = false;
 
 	WCHAR str[64];
-	wsprintf(str, L"Обработано файлов: %d из %d", files_count, files_count);
+	wsprintf(str, L"Обработано файлов: %d из %d", progress, files_count);
 	SendMessage(output_list, LB_DELETESTRING, WPARAM(1), 0);
 	SendMessage(output_list, LB_INSERTSTRING, WPARAM(1), LPARAM(str));
 	EnableWindow(GetDlgItem(hwnd, IDC_START_BTN), TRUE); // enable start button

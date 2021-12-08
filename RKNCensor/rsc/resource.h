@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ generated include file.
-// Used by RKNCensor.rc
+// Включаемый файл, созданный в Microsoft Visual C++.
+// Используется RKNCensor.rc
 //
 #define IDC_STOP_BTN                    3
 #define IDC_PAUSE_BTN                   4
@@ -12,6 +12,7 @@
 #define IDC_CLEARLIST_BTN               10
 #define IDCANCEL6                       11
 #define IDC_OUTDIR_BTN                  11
+#define IDC_VIEWDIR_BTN2                12
 #define IDD_DIALOG1                     101
 #define IDC_CENSOR_LIST                 1001
 #define IDC_WORD_EDIT                   1002
@@ -20,6 +21,7 @@
 #define IDC_RADIO3                      1005
 #define IDC_VOLUME_EDIT                 1006
 #define IDC_DIR_EDIT                    1007
+#define IDC_INDIR_EDIT                  1007
 #define IDC_OUTPUT_LIST                 1008
 #define IDC_PROGRESS1                   1009
 #define IDC_WORDS_GROUP                 1011
@@ -27,6 +29,9 @@
 #define IDC_DELWORD                     1013
 #define IDC_OUTPUT_GROUP                1014
 #define IDC_SEARCH_GROUP                1015
+#define IDC_SEARCH_GROUP2               1016
+#define IDC_OUTDIR_GROUP                1016
+#define IDC_OUTDIR_EDIT                 1020
 
 // Next default values for new objects
 // 

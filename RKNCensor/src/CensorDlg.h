@@ -32,6 +32,8 @@ class CensorDlg
 	void ClearWords(HWND hwnd);
 	void MakeWordList(HWND hwnd);
 
+	std::wstring getOutPath(HWND hwnd);
+
 	bool CensorText(wchar_t* text);
 	void ProcessFile(const wchar_t* path);
 	void ProcessPortion(HWND hwnd, std::vector<std::wstring> files);
@@ -42,19 +44,23 @@ class CensorDlg
 
 	std::vector<std::wstring> words;
 	std::map<std::wstring, int> top;
-
+	std::wstring out_path;
+	
 	LONG file_id = 1;
 	LONG progress;
+		
 	HANDLE mutex_output;
+	bool kill_thread = false;
+
 	std::thread* threads;
-	unsigned int timer_exit;
 	std::thread process_thread;
 	std::thread timer_thread;
 	unsigned int cores;
+	
 	unsigned int files_count = 0;
 	void Timer(HWND hwnd);
 	HWND output_list;
-	bool kill_thread = false;
+	
 public:
 	CensorDlg();
 	//~CensorDlg();
