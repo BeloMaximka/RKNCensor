@@ -15,7 +15,7 @@ void CensorDlg::OnClose(HWND hwnd)
 
 BOOL CensorDlg::OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 {
-	output = GetDlgItem(hwnd, IDC_OUTPUT_LIST);
+	output_list = GetDlgItem(hwnd, IDC_OUTPUT_LIST);
 	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETBARCOLOR, 0, LPARAM(RGB(0, 200, 0)));
 	return TRUE;
 }
@@ -59,10 +59,9 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		file_id = 0;
 		progress = 0;
 		SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETPOS, WPARAM(0), 0);
-		SendMessage(output, LB_INSERTSTRING, WPARAM(0), LPARAM(L"ОБРАБОТКА..."));
-		SendMessage(output, LB_INSERTSTRING, WPARAM(1), LPARAM(L"S"));
-		SendMessage(output, LB_INSERTSTRING, WPARAM(2), LPARAM(L"S"));
-		timer_thread = std::thread(&CensorDlg::Timer, this, hwnd);
+		SendMessage(output_list, LB_RESETCONTENT, 0, 0);
+		for (size_t i = 0; i < 3; i++)
+			SendMessage(output_list, LB_INSERTSTRING, WPARAM(i), LPARAM(L"."));
 
 		MakeWordList(hwnd);
 		WCHAR path[256];
@@ -181,6 +180,14 @@ void CensorDlg::ProcessFile(const wchar_t* path)
 		std::wstring result;
 		while (getline(file, result)) // main loop
 		{
+			if (kill_thread)
+			{
+				if (!replacement)
+					_wunlink(file_name.c_str());
+				file.close();
+				cpy_file.close();
+				return;
+			}
 			if (!replacement)
 				replacement = CensorText(&result[0]);
 			else
@@ -208,39 +215,19 @@ void CensorDlg::ProcessFiles(HWND hwnd, std::vector<std::wstring> files)
 	{
 		ProcessFile(files[i].c_str());
 		int prog = InterlockedAdd(&progress, 1);
-		wchar_t str[64];
-		wsprintf(str, L"Обработано файлов: %d их %d", prog, files_count);
-		WaitForSingleObject(mutex_output, INFINITE);
-		mutex_output = CreateMutex(NULL, TRUE, NULL);
-		SendMessage(output, LB_DELETESTRING, WPARAM(1), 0);
-		SendMessage(output, LB_INSERTSTRING, WPARAM(1), LPARAM(str));
-		ReleaseMutex(output);
 		PostMessage(GetDlgItem(hwnd, IDC_PROGRESS1), PBM_SETPOS, WPARAM(progress), 0);
 	}
 }
 
 void CensorDlg::ProcessDirectory(HWND hwnd, std::wstring path)
 {
-	SendMessage(output, LB_DELETESTRING, WPARAM(1), 0);
-	SendMessage(output, LB_INSERTSTRING, WPARAM(1), LPARAM(L"Обработано файлов: 0 из..."));
+	std::thread timer_thread(&CensorDlg::Timer, this, hwnd);
+	PrintIntOutputList(0, L"ПОЛУЧЕНИЕ СПИСКА ФАЙЛОВ...");
 	FilesList files = GetFileListFromDirectory(path.c_str());
+	PrintIntOutputList(0, L"ОБРАБОТКА..");
 	files_count = files.size();
 	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETRANGE, 0, MAKELPARAM(0, files.size()));
 	
-	wchar_t str[64];
-	wsprintf(str, L"Обработано файлов: 0 их %d", files_count);
-	SendMessage(output, LB_DELETESTRING, WPARAM(1), 0);
-	SendMessage(output, LB_INSERTSTRING, WPARAM(1), LPARAM(str));
-	if (cores == 1)
-	{
-		for (size_t i = 0; i < files.size(); i++)
-		{
-			ProcessFile(std::get<std::wstring>(files[i]).c_str());
-			SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETPOS, WPARAM(++progress), 0);
-		}
-		return;
-	}
-
 	for (size_t i = 0; i < cores; i++)
 	{
 		if (threads[i].joinable())
@@ -284,8 +271,8 @@ void CensorDlg::ProcessDirectory(HWND hwnd, std::wstring path)
 	{
 		threads[i].join();
 	}
-	TerminateThread(timer_thread.native_handle(), 0);
-	timer_thread.detach();
+	kill_thread = true;
+	timer_thread.join();
 	process_thread.detach();
 }
 
@@ -339,6 +326,15 @@ CensorDlg::FilesList CensorDlg::GetFileListFromDirectory(const wchar_t* path, bo
 	return files;
 }
 
+void CensorDlg::PrintIntOutputList(int i, const wchar_t* text)
+{
+	WaitForSingleObject(mutex_output, INFINITE);
+	mutex_output = CreateMutex(NULL, TRUE, NULL);
+	SendMessage(output_list, LB_DELETESTRING, WPARAM(i), 0);
+	SendMessage(output_list, LB_INSERTSTRING, WPARAM(i), LPARAM(text));
+	ReleaseMutex(mutex_output);
+}
+
 void CensorDlg::Timer(HWND hwnd)
 {
 	using namespace std;
@@ -346,7 +342,7 @@ void CensorDlg::Timer(HWND hwnd)
 	typedef chrono::seconds sec;
 	typedef chrono::duration<float> duration;
 	auto start = Time::now();
-	while (true)
+	do
 	{
 		auto current = Time::now();
 		duration fs = current - start;
@@ -354,15 +350,18 @@ void CensorDlg::Timer(HWND hwnd)
 		uint32_t hh = dur.count() / 3600;
 		uint32_t mm = (dur.count() % 3600) / 60;
 		uint32_t ss = (dur.count() % 3600) % 60;
-		wchar_t timer[25];
-		wsprintf(timer, L"Прошло времени: %02d:%02d:%02d", hh, mm, ss);
+		wchar_t str[64];
+		wsprintf(str, L"Прошло времени: %02d:%02d:%02d", hh, mm, ss);
 		WaitForSingleObject(mutex_output, INFINITE);
 		mutex_output = CreateMutex(NULL, TRUE, NULL);
-		SendMessage(output, LB_DELETESTRING, WPARAM(2), 0);
-		SendMessage(output, LB_INSERTSTRING, WPARAM(2), LPARAM(timer));
-		ReleaseMutex(output);
+		SendMessage(output_list, LB_DELETESTRING, WPARAM(2), 0);
+		SendMessage(output_list, LB_INSERTSTRING, WPARAM(2), LPARAM(str));
+		wsprintf(str, L"Обработано файлов: %d из %d", progress, files_count);
+		SendMessage(output_list, LB_DELETESTRING, WPARAM(1), 0);
+		SendMessage(output_list, LB_INSERTSTRING, WPARAM(1), LPARAM(str));
+		ReleaseMutex(mutex_output);
 		std::this_thread::sleep_for(1s);
-	}
+	} while (!kill_thread);
 }
 
 CensorDlg::CensorDlg()
