@@ -155,10 +155,12 @@
     <ClInclude Include="src\CensorDlg.h" />
     <ClInclude Include="src\MFTscan.h" />
     <ClInclude Include="src\TextFileEncoding.h" />
+    <ClInclude Include="src\WordList.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\CensorDlg.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\WordList.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="rsc\RKNCensor.rc" />

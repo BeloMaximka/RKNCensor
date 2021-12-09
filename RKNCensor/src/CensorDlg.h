@@ -27,11 +27,6 @@ class CensorDlg
 	BOOL OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam);
 	void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify);
 
-	void AddWord(HWND hwnd);
-	void DeleteWord(HWND hwnd);
-	void ClearWords(HWND hwnd);
-	void MakeWordList(HWND hwnd);
-
 	std::wstring getOutPath(HWND hwnd);
 
 	bool CensorText(wchar_t* text);
@@ -40,8 +35,9 @@ class CensorDlg
 	void ProcessFilesList(HWND hwnd, FilesList files);
 
 	FilesList GetFileListFromDirectory(const wchar_t* path, bool recursive = true);
-	void PrintIntOutputList(int i, const wchar_t* text);
+	void PrintIntOutputList(int index, const wchar_t* text);
 
+	HWND word_list;
 	std::vector<std::wstring> words;
 	std::map<std::wstring, int> top;
 	std::wstring out_path;

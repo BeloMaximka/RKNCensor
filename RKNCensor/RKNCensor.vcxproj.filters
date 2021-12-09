@@ -27,12 +27,18 @@
     <ClInclude Include="src\MFTscan.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\WordList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\CensorDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\WordList.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

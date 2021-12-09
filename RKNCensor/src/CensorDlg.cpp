@@ -3,6 +3,7 @@
 #include <wow64apiset.h>
 #include <chrono>
 #include "TextFileEncoding.h"
+#include "WordList.h"
 
 CensorDlg* CensorDlg::ptr = NULL;
 HBRUSH CensorDlg::CensorDlg::brush = CreateSolidBrush(RGB(255, 255, 255));
@@ -15,6 +16,7 @@ void CensorDlg::OnClose(HWND hwnd)
 
 BOOL CensorDlg::OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 {
+	word_list = GetDlgItem(hwnd, IDC_CENSOR_LIST);
 	output_list = GetDlgItem(hwnd, IDC_OUTPUT_LIST);
 	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETBARCOLOR, 0, LPARAM(RGB(0, 200, 0)));
 
@@ -29,13 +31,13 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 	switch (id)
 	{
 	case IDC_ADDWORD_BTN:
-		AddWord(hwnd);
+		WordList::addWord(word_list);
 		break;
 	case IDC_DELWORD:
-		DeleteWord(hwnd);
+		WordList::deleteSelected(word_list);
 		break;
 	case IDC_CLEARLIST_BTN:
-		ClearWords(hwnd);
+		WordList::clear(word_list);
 		break;
 	case IDC_RADIO1:
 		EnableWindow(GetDlgItem(hwnd, IDC_VOLUME_EDIT), FALSE);
@@ -60,7 +62,7 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		SendMessage(output_list, LB_RESETCONTENT, 0, 0);
 		for (size_t i = 0; i < 3; i++)
 			SendMessage(output_list, LB_INSERTSTRING, WPARAM(i), LPARAM(L"."));
-		MakeWordList(hwnd);
+		WordList::makeWordList(word_list, words);
 		WCHAR path[256];
 		GetDlgItemText(hwnd, IDC_DIR_EDIT, path, 256);
 
@@ -71,40 +73,6 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		process_thread = std::thread(&CensorDlg::ProcessFilesList, this, hwnd, std::move(files));
 		EnableWindow(GetDlgItem(hwnd, IDC_START_BTN), FALSE); // disable start button
 		break;
-	}
-}
-
-void CensorDlg::AddWord(HWND hwnd)
-{
-	TCHAR word[256];
-	GetDlgItemText(hwnd, IDC_WORD_EDIT, word, 256);
-	if (_tcslen(word) && SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_FINDSTRINGEXACT, -1, LPARAM(word)) == LB_ERR)
-	{
-		std::transform(word, word + 256, word, ::towlower);
-		SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_ADDSTRING, 0, LPARAM(word));
-	}
-}
-
-void CensorDlg::DeleteWord(HWND hwnd)
-{
-	int index = SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_GETCURSEL, 0, 0);
-	SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_DELETESTRING, WPARAM(index), 0);
-}
-
-void CensorDlg::ClearWords(HWND hwnd)
-{
-	SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_RESETCONTENT, 0, 0);
-}
-
-void CensorDlg::MakeWordList(HWND hwnd)
-{
-	words.clear();
-	WCHAR text[256];
-	int count = SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_GETCOUNT, 0, 0);
-	for (int i = 0; i < count; i++)
-	{
-		SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_GETTEXT, WPARAM(i), LPARAM(text));
-		words.push_back(text);
 	}
 }
 
@@ -347,12 +315,12 @@ CensorDlg::FilesList CensorDlg::GetFileListFromDirectory(const wchar_t* path, bo
 	return files;
 }
 
-void CensorDlg::PrintIntOutputList(int i, const wchar_t* text)
+void CensorDlg::PrintIntOutputList(int index, const wchar_t* text)
 {
 	WaitForSingleObject(mutex_output, INFINITE);
 	mutex_output = CreateMutex(NULL, TRUE, NULL);
-	SendMessage(output_list, LB_DELETESTRING, WPARAM(i), 0);
-	SendMessage(output_list, LB_INSERTSTRING, WPARAM(i), LPARAM(text));
+	SendMessage(output_list, LB_DELETESTRING, WPARAM(index), 0);
+	SendMessage(output_list, LB_INSERTSTRING, WPARAM(index), LPARAM(text));
 	ReleaseMutex(mutex_output);
 }
 
