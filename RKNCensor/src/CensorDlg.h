@@ -18,6 +18,12 @@
 
 class CensorDlg
 {
+	enum class DirectoryMethod
+	{
+		ALL_VOLUMES,
+		VOLUME,
+		DIR,
+	};
 	static HBRUSH brush;
 	// pairs of size and filepath
 	typedef std::vector<std::pair<int, std::wstring>> FilesList;
@@ -32,7 +38,7 @@ class CensorDlg
 	bool CensorText(wchar_t* text);
 	void ProcessFile(const wchar_t* path);
 	void ProcessPortion(HWND hwnd, std::vector<std::wstring> files);
-	void ProcessFilesList(HWND hwnd, FilesList files);
+	void ProcessFilesList(HWND hwnd, DirectoryMethod method);
 
 	FilesList GetFileListFromDirectory(const wchar_t* path, bool recursive = true);
 	void PrintIntOutputList(int index, const wchar_t* text);

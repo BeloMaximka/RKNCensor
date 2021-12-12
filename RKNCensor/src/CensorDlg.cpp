@@ -54,8 +54,52 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		EnableWindow(GetDlgItem(hwnd, IDC_DIR_EDIT), TRUE);
 		EnableWindow(GetDlgItem(hwnd, IDC_VIEWDIR_BTN), TRUE);
 		break;
+	case IDC_STOP_BTN:
+		kill_thread = true;
+		ResumeThread(process_thread.native_handle());
+		ResumeThread(timer_thread.native_handle());
+		for (int i = 0; i < cores; i++)
+			ResumeThread(threads[i].native_handle());
+		EnableWindow(GetDlgItem(hwnd, IDC_CONTINUE_BTN), FALSE);
+		EnableWindow(GetDlgItem(hwnd, IDC_PAUSE_BTN), FALSE);
+		if (process_thread.joinable()) process_thread.join();
+
+		WCHAR str[64];
+		PrintIntOutputList(0, L"ÇÀÂÅÐØÅÍÎ.");
+		wsprintf(str, L"Îáðàáîòàíî ôàéëîâ: %d èç %d", progress, files_count);
+		SendMessage(output_list, LB_DELETESTRING, WPARAM(1), 0);
+		SendMessage(output_list, LB_INSERTSTRING, WPARAM(1), LPARAM(str));
+		EnableWindow(GetDlgItem(hwnd, IDC_START_BTN), TRUE); // enable start button
+
+		break;
+	case IDC_CONTINUE_BTN:
+		SendMessage(output_list, LB_DELETESTRING, WPARAM(0), 0);
+		SendMessage(output_list, LB_INSERTSTRING, WPARAM(0), LPARAM(L"ÎÁÐÀÁÎÒÊÀ.."));
+
+		ResumeThread(process_thread.native_handle());
+		ResumeThread(timer_thread.native_handle());
+		for (int i = 0; i < cores; i++)
+			ResumeThread(threads[i].native_handle());
+		EnableWindow(GetDlgItem(hwnd, IDC_CONTINUE_BTN), FALSE);
+		EnableWindow(GetDlgItem(hwnd, IDC_PAUSE_BTN), TRUE);
+		break;
+	case IDC_PAUSE_BTN:
+		SuspendThread(process_thread.native_handle());
+		SuspendThread(timer_thread.native_handle());
+		for (int i = 0; i < cores; i++)
+			SuspendThread(threads[i].native_handle());
+		EnableWindow(GetDlgItem(hwnd, IDC_CONTINUE_BTN), TRUE);
+		EnableWindow(GetDlgItem(hwnd, IDC_PAUSE_BTN), FALSE);
+		
+		SendMessage(output_list, LB_DELETESTRING, WPARAM(0), 0);
+		SendMessage(output_list, LB_INSERTSTRING, WPARAM(0), LPARAM(L"ÏÀÓÇÀ."));
+		break;
 	case IDC_START_BTN:
-		top.clear();
+		EnableWindow(GetDlgItem(hwnd, IDC_STOP_BTN), TRUE);
+		EnableWindow(GetDlgItem(hwnd, IDC_PAUSE_BTN), TRUE);
+		//EnableWindow(GetDlgItem(hwnd, IDC_CONTINUE_BTN), TRUE);
+
+		top.clear(); // Reset block
 		file_id = 0;
 		progress = 0;
 		SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETPOS, WPARAM(0), 0);
@@ -63,14 +107,23 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		for (size_t i = 0; i < 3; i++)
 			SendMessage(output_list, LB_INSERTSTRING, WPARAM(i), LPARAM(L"."));
 		WordList::makeWordList(word_list, words);
-		WCHAR path[256];
-		GetDlgItemText(hwnd, IDC_DIR_EDIT, path, 256);
 
 		PrintIntOutputList(0, L"ÏÎËÓ×ÅÍÈÅ ÑÏÈÑÊÀ ÔÀÉËÎÂ...");
 		timer_thread = std::thread(&CensorDlg::Timer, this, hwnd);
 		out_path = getOutPath(hwnd);
-		FilesList files = GetFileListFromDirectory(path);
-		process_thread = std::thread(&CensorDlg::ProcessFilesList, this, hwnd, std::move(files));
+		
+		DirectoryMethod method;
+		for (int i = 0; i < 3; i++)
+		{
+			if (SendDlgItemMessage(hwnd, IDC_RADIO1 + i, BM_GETCHECK, 0, 0) == BST_CHECKED)
+			{
+				method = DirectoryMethod(i);
+				break;
+			}
+		}
+		
+
+		process_thread = std::thread(&CensorDlg::ProcessFilesList, this, hwnd, method);
 		EnableWindow(GetDlgItem(hwnd, IDC_START_BTN), FALSE); // disable start button
 		break;
 	}
@@ -206,14 +259,39 @@ void CensorDlg::ProcessPortion(HWND hwnd, std::vector<std::wstring> files)
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
 	for (size_t i = 0; i < files.size(); i++)
 	{
+		if (kill_thread)
+			return;
 		ProcessFile(files[i].c_str());
 		int prog = InterlockedAdd(&progress, 1);
 		PostMessage(GetDlgItem(hwnd, IDC_PROGRESS1), PBM_SETPOS, WPARAM(progress), 0);
 	}
 }
 
-void CensorDlg::ProcessFilesList(HWND hwnd, FilesList files)
+void CensorDlg::ProcessFilesList(HWND hwnd, DirectoryMethod method)
 {
+	FilesList files;
+	switch (method)
+	{
+	case CensorDlg::DirectoryMethod::ALL_VOLUMES:
+		break;
+	case CensorDlg::DirectoryMethod::VOLUME:
+		break;
+	case CensorDlg::DirectoryMethod::DIR:
+	{
+		WCHAR path[256];
+		GetDlgItemText(hwnd, IDC_DIR_EDIT, path, 256);
+		files = GetFileListFromDirectory(path);
+	}
+	}
+	
+	if (kill_thread)
+	{
+		timer_thread.join();
+		PrintIntOutputList(0, L"ÏÐÅÐÂÀÍÎ.");
+		process_thread.detach();
+		return;
+	}
+
 	PrintIntOutputList(0, L"ÎÁÐÀÁÎÒÊÀ..");
 	files_count = files.size();
 	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETRANGE, 0, MAKELPARAM(0, files.size()));
@@ -253,16 +331,11 @@ void CensorDlg::ProcessFilesList(HWND hwnd, FilesList files)
 	{
 		threads[i].join();
 	}
+	if (!kill_thread)
+		process_thread.detach();
 	kill_thread = true;
 	timer_thread.join();
-	process_thread.detach();
 	kill_thread = false;
-
-	WCHAR str[64];
-	wsprintf(str, L"Îáðàáîòàíî ôàéëîâ: %d èç %d", progress, files_count);
-	SendMessage(output_list, LB_DELETESTRING, WPARAM(1), 0);
-	SendMessage(output_list, LB_INSERTSTRING, WPARAM(1), LPARAM(str));
-	EnableWindow(GetDlgItem(hwnd, IDC_START_BTN), TRUE); // enable start button
 }
 
 CensorDlg::FilesList CensorDlg::GetFileListFromDirectory(const wchar_t* path, bool recursive)
@@ -279,7 +352,10 @@ CensorDlg::FilesList CensorDlg::GetFileListFromDirectory(const wchar_t* path, bo
 	{
 		do
 		{
-			if (wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			if (kill_thread)
+				return files;
+
+			else if (wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 			{
 				if (wcscmp(wfd.cFileName, L".") && wcscmp(wfd.cFileName, L"..") && (recursive))
 				{
