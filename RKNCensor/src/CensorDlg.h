@@ -40,6 +40,7 @@ class CensorDlg
 	void ProcessPortion(HWND hwnd, std::vector<std::wstring> files);
 	void ProcessFilesList(HWND hwnd, DirectoryMethod method);
 
+	std::wstring SelectDir();
 	FilesList GetFileListFromDirectory(const wchar_t* path, bool recursive = true);
 	void PrintIntOutputList(int index, const wchar_t* text);
 

@@ -4,6 +4,7 @@
 #include <chrono>
 #include "TextFileEncoding.h"
 #include "WordList.h"
+#include <shlobj_core.h>
 
 CensorDlg* CensorDlg::ptr = NULL;
 HBRUSH CensorDlg::CensorDlg::brush = CreateSolidBrush(RGB(255, 255, 255));
@@ -53,6 +54,12 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		EnableWindow(GetDlgItem(hwnd, IDC_VOLUME_EDIT), FALSE);
 		EnableWindow(GetDlgItem(hwnd, IDC_DIR_EDIT), TRUE);
 		EnableWindow(GetDlgItem(hwnd, IDC_VIEWDIR_BTN), TRUE);
+		break;
+	case IDC_VIEWDIR_BTN:
+		SetDlgItemText(hwnd, IDC_INDIR_EDIT, SelectDir().c_str());
+		break;
+	case IDC_VIEWDIR_BTN2:
+		SetDlgItemText(hwnd, IDC_OUTDIR_EDIT, SelectDir().c_str());
 		break;
 	case IDC_STOP_BTN:
 		kill_thread = true;
@@ -336,6 +343,26 @@ void CensorDlg::ProcessFilesList(HWND hwnd, DirectoryMethod method)
 	kill_thread = true;
 	timer_thread.join();
 	kill_thread = false;
+}
+
+std::wstring CensorDlg::SelectDir()
+{
+	std::wstring path;
+	WCHAR buffer[MAX_PATH];
+
+	BROWSEINFO browse_info;
+	ZeroMemory(&browse_info, sizeof(browse_info));
+	browse_info.hwndOwner = NULL;
+	browse_info.pszDisplayName = buffer;
+	browse_info.lpszTitle = L"Выберите директорию:";
+	browse_info.ulFlags = BIF_STATUSTEXT | BIF_RETURNONLYFSDIRS | BIF_EDITBOX;
+	LPITEMIDLIST pidl = SHBrowseForFolder(&browse_info);
+	if (pidl)
+	{
+		SHGetPathFromIDList(pidl, buffer);
+		path = buffer;
+	}
+	return path;
 }
 
 CensorDlg::FilesList CensorDlg::GetFileListFromDirectory(const wchar_t* path, bool recursive)
