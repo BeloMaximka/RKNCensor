@@ -55,6 +55,11 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		EnableWindow(GetDlgItem(hwnd, IDC_DIR_EDIT), TRUE);
 		EnableWindow(GetDlgItem(hwnd, IDC_VIEWDIR_BTN), TRUE);
 		break;
+	case IDC_OUTDIR_BTN:
+		WCHAR path[MAX_PATH];
+		GetDlgItemText(hwnd, IDC_OUTDIR_EDIT, path, MAX_PATH);
+		ShellExecute(NULL, L"open", path, NULL, NULL, SW_SHOWDEFAULT);
+		break;
 	case IDC_VIEWDIR_BTN:
 		SetDlgItemText(hwnd, IDC_INDIR_EDIT, SelectDir().c_str());
 		break;
