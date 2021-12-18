@@ -29,7 +29,7 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 	switch (id)
 	{
 	case IDC_ADDWORD_BTN:
-		WordList::addWord(word_list);
+		WordList::addWord(word_list, GetDlgItem(hwnd, IDC_WORD_EDIT));
 		break;
 	case IDC_DELWORD:
 		WordList::deleteSelected(word_list);

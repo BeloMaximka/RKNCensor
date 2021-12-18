@@ -45,6 +45,7 @@ class CensorDlg
 	void PrintIntOutputList(int index, const wchar_t* text);
 
 	HWND word_list;
+	HWND output_list;
 	std::vector<std::wstring> words;
 	std::map<std::wstring, int> top;
 	std::wstring out_path;
@@ -62,7 +63,6 @@ class CensorDlg
 	
 	unsigned int files_count = 0;
 	void Timer(HWND hwnd);
-	HWND output_list;
 	
 public:
 	CensorDlg();

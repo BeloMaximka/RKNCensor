@@ -6,7 +6,7 @@
 
 namespace WordList
 {
-	void addWord(HWND list);
+	void addWord(HWND list, HWND edit);
 	void deleteSelected(HWND list);
 	void clear(HWND list);
 	void makeWordList(HWND list, std::vector<std::wstring>& words);

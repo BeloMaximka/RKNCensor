@@ -3,10 +3,10 @@
 #include <fstream>
 #include <locale>
 
-void WordList::addWord(HWND list)
+void WordList::addWord(HWND list, HWND edit)
 {
 	WCHAR word[256];
-	GetWindowText(list, word, 256);
+	GetWindowText(edit, word, 256);
 	if (wcslen(word) && SendMessage(list, LB_FINDSTRINGEXACT, -1, LPARAM(word)) == LB_ERR)
 	{
 		std::transform(word, word + 256, word, ::towlower);
@@ -60,6 +60,8 @@ void WordList::loadWordsFromFile(HWND list)
 	std::locale loc;
 	std::wstring word;
 	std::wifstream file = openTextFile(szFile, loc);
+	if (!file.is_open())
+		return;
 	while (!file.eof())
 	{
 		getline(file, word);
