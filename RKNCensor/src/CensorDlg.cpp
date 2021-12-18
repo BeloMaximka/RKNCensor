@@ -1,9 +1,6 @@
-#define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 #include "CensorDlg.h"
 #include <wow64apiset.h>
 #include <chrono>
-#include "TextFileEncoding.h"
-#include "WordList.h"
 #include <shlobj_core.h>
 
 CensorDlg* CensorDlg::ptr = NULL;
@@ -39,6 +36,9 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		break;
 	case IDC_CLEARLIST_BTN:
 		WordList::clear(word_list);
+		break;
+	case IDC_LOADLIST_BTN:
+		WordList::loadWordsFromFile(word_list);
 		break;
 	case IDC_RADIO1:
 		EnableWindow(GetDlgItem(hwnd, IDC_VOLUME_EDIT), FALSE);

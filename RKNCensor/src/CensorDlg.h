@@ -3,9 +3,9 @@
 #include <windowsX.h>
 
 #include "..\rsc\resource.h"
+#include "WordList.h"
 
 #include <regex>
-#include <tchar.h>
 #include <algorithm>
 #include <filesystem>
 #include <vector>

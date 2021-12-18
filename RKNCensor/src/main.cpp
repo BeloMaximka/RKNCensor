@@ -1,3 +1,4 @@
+//#define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 #include "CensorDlg.h"
 
 int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPTSTR lpszCmdLine, int nCmdShow)
