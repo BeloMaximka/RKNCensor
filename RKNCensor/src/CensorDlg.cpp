@@ -110,9 +110,13 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		SendMessage(output_list, LB_INSERTSTRING, WPARAM(0), LPARAM(L"ПАУЗА."));
 		break;
 	case IDC_START_BTN:
+		if (SendDlgItemMessage(hwnd, IDC_CENSOR_LIST, LB_GETCOUNT, 0, 0) == 0)
+		{
+			MessageBox(NULL, L"Список запрещенных слов пуст.", L"Ошибка", MB_ICONERROR);
+			return;
+		}
 		EnableWindow(GetDlgItem(hwnd, IDC_STOP_BTN), TRUE);
 		EnableWindow(GetDlgItem(hwnd, IDC_PAUSE_BTN), TRUE);
-		//EnableWindow(GetDlgItem(hwnd, IDC_CONTINUE_BTN), TRUE);
 
 		top.clear(); // Reset block
 		file_id = 0;
@@ -314,13 +318,13 @@ void CensorDlg::ProcessFilesList(HWND hwnd, DirectoryMethod method)
 		GetDlgItemText(hwnd, IDC_VOLUME_EDIT, volume, 2);
 		if (volume[0] > 128)
 		{
-			MessageBox(NULL, L"Некорретная буква раздела", L"Ошибка", 0);
+			MessageBox(NULL, L"Некорретная буква раздела", L"Ошибка", MB_ICONERROR);
 			no_wait = true;
 			kill_thread = true;
 		}
 		else if (!MFT::isVolumeExist(volume[0]))
 		{
-			MessageBox(NULL, L"Выбранного раздела не существует", L"Ошибка", 0);
+			MessageBox(NULL, L"Выбранного раздела не существует", L"Ошибка", MB_ICONERROR);
 			no_wait = true;
 			kill_thread = true;
 		}
