@@ -160,6 +160,7 @@
   <ItemGroup>
     <ClCompile Include="src\CensorDlg.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\MFTscan.cpp" />
     <ClCompile Include="src\TextFileEncoding.cpp" />
     <ClCompile Include="src\WordList.cpp" />
   </ItemGroup>

@@ -4,6 +4,7 @@
 
 #include "..\rsc\resource.h"
 #include "WordList.h"
+#include "MFTscan.h"
 
 #include <regex>
 #include <algorithm>

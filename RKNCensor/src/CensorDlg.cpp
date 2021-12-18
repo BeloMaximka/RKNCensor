@@ -77,15 +77,15 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 			ResumeThread(threads[i].native_handle());
 		EnableWindow(GetDlgItem(hwnd, IDC_CONTINUE_BTN), FALSE);
 		EnableWindow(GetDlgItem(hwnd, IDC_PAUSE_BTN), FALSE);
+		EnableWindow(GetDlgItem(hwnd, IDC_STOP_BTN), FALSE);
 		if (process_thread.joinable()) process_thread.join();
+		EnableWindow(GetDlgItem(hwnd, IDC_START_BTN), TRUE); // enable start button
 
 		WCHAR str[64];
-		PrintIntOutputList(0, L"ЗАВЕРШЕНО.");
+		PrintIntOutputList(0, L"ПРЕРВАНО.");
 		wsprintf(str, L"Обработано файлов: %d из %d", progress, files_count);
 		SendMessage(output_list, LB_DELETESTRING, WPARAM(1), 0);
 		SendMessage(output_list, LB_INSERTSTRING, WPARAM(1), LPARAM(str));
-		EnableWindow(GetDlgItem(hwnd, IDC_START_BTN), TRUE); // enable start button
-
 		break;
 	case IDC_CONTINUE_BTN:
 		SendMessage(output_list, LB_DELETESTRING, WPARAM(0), 0);
@@ -284,12 +284,60 @@ void CensorDlg::ProcessPortion(HWND hwnd, std::vector<std::wstring> files)
 
 void CensorDlg::ProcessFilesList(HWND hwnd, DirectoryMethod method)
 {
+	bool no_wait = false;
 	FilesList files;
 	switch (method)
 	{
 	case CensorDlg::DirectoryMethod::ALL_VOLUMES:
+	{
+		std::vector<char> volumes = MFT::getVolumeList();
+		for (char letter : volumes)
+		{
+			if (MFT::isNTFS(letter))
+			{
+				FilesList temp = MFT::ScanVolumeMFT(letter);
+				files.insert(files.end(), std::make_move_iterator(temp.begin()), std::make_move_iterator(temp.end()));
+			}
+			else
+			{
+				WCHAR path[8];
+				wsprintf(path, L"%c:\\", letter);
+				FilesList temp = GetFileListFromDirectory(path);
+				files.insert(files.end(), std::make_move_iterator(temp.begin()), std::make_move_iterator(temp.end()));
+			}
+		}
+	}
 		break;
 	case CensorDlg::DirectoryMethod::VOLUME:
+	{
+		WCHAR volume[2];
+		GetDlgItemText(hwnd, IDC_VOLUME_EDIT, volume, 2);
+		if (volume[0] > 128)
+		{
+			MessageBox(NULL, L"Некорретная буква раздела", L"Ошибка", 0);
+			no_wait = true;
+			kill_thread = true;
+		}
+		else if (!MFT::isVolumeExist(volume[0]))
+		{
+			MessageBox(NULL, L"Выбранного раздела не существует", L"Ошибка", 0);
+			no_wait = true;
+			kill_thread = true;
+		}
+		else
+		{
+			if (MFT::isNTFS(volume[0]))
+			{
+				files = MFT::ScanVolumeMFT(volume[0]);
+			}
+			else
+			{
+				WCHAR path[8];
+				wsprintf(path, L"%c:\\", volume[0]);
+				files = GetFileListFromDirectory(path);
+			}
+		}
+	}
 		break;
 	case CensorDlg::DirectoryMethod::DIR:
 	{
@@ -302,8 +350,16 @@ void CensorDlg::ProcessFilesList(HWND hwnd, DirectoryMethod method)
 	if (kill_thread)
 	{
 		timer_thread.join();
-		PrintIntOutputList(0, L"ПРЕРВАНО.");
-		process_thread.detach();
+		EnableWindow(GetDlgItem(hwnd, IDC_CONTINUE_BTN), FALSE);
+		EnableWindow(GetDlgItem(hwnd, IDC_PAUSE_BTN), FALSE);
+		EnableWindow(GetDlgItem(hwnd, IDC_STOP_BTN), FALSE);
+		EnableWindow(GetDlgItem(hwnd, IDC_START_BTN), TRUE);
+		if (no_wait)
+		{
+			PrintIntOutputList(0, L"ПРЕРВАНО.");
+			process_thread.detach();
+		}
+		
 		return;
 	}
 
@@ -429,7 +485,7 @@ CensorDlg::FilesList CensorDlg::GetFileListFromDirectory(const wchar_t* path, bo
 void CensorDlg::PrintIntOutputList(int index, const wchar_t* text)
 {
 	WaitForSingleObject(mutex_output, INFINITE);
-	mutex_output = CreateMutex(NULL, TRUE, NULL);
+	mutex_output = CreateMutex(NULL, FALSE, NULL);
 	SendMessage(output_list, LB_DELETESTRING, WPARAM(index), 0);
 	SendMessage(output_list, LB_INSERTSTRING, WPARAM(index), LPARAM(text));
 	ReleaseMutex(mutex_output);
@@ -453,7 +509,7 @@ void CensorDlg::Timer(HWND hwnd)
 		wchar_t str[64];
 		wsprintf(str, L"Прошло времени: %02d:%02d:%02d", hh, mm, ss);
 		WaitForSingleObject(mutex_output, INFINITE);
-		mutex_output = CreateMutex(NULL, TRUE, NULL);
+		mutex_output = CreateMutex(NULL, FALSE, NULL);
 		SendMessage(output_list, LB_DELETESTRING, WPARAM(2), 0);
 		SendMessage(output_list, LB_INSERTSTRING, WPARAM(2), LPARAM(str));
 		wsprintf(str, L"Обработано файлов: %d из %d", progress, files_count);
