@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <fstream>
 #include <locale>
+using namespace std;
 
 void WordList::addWord(HWND list, HWND edit)
 {
@@ -25,7 +26,7 @@ void WordList::clear(HWND list)
 	SendMessage(list, LB_RESETCONTENT, 0, 0);
 }
 
-void WordList::makeWordList(HWND list, std::vector<std::wstring>& words)
+void WordList::makeWordList(HWND list, vector<wstring>& words)
 {
 	words.clear();
 	WCHAR text[256];
@@ -57,15 +58,44 @@ void WordList::loadWordsFromFile(HWND list)
 	GetOpenFileName(&ofn);
 	WordList::clear(list);
 
-	std::locale loc;
-	std::wstring word;
-	std::wifstream file = openTextFile(szFile, loc);
+	locale loc;
+	wstring word;
+	wifstream file = openTextFile(szFile, loc);
 	if (!file.is_open())
 		return;
 	while (!file.eof())
 	{
 		getline(file, word);
 		SendMessage(list, LB_ADDSTRING, NULL, LPARAM(word.c_str()));
+	}
+	file.close();
+}
+
+void WordList::saveWordsToFile(HWND list)
+{
+	OPENFILENAME ofn;
+	WCHAR path[MAX_PATH]{ 0 };
+
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.lpstrFile = path;
+	ofn.nMaxFile = sizeof(path);
+	ofn.lpstrFilter = L"Текстовые файлы\0*.txt\0Все файлы\0*.*\0\0";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrInitialDir = NULL;
+	ofn.Flags = OFN_OVERWRITEPROMPT;
+
+	GetSaveFileName(&ofn);
+	wofstream file(path);
+	if (!file.is_open())
+		return;
+	file.imbue(locale(locale(), new codecvt_utf8<wchar_t, 0x10ffff, generate_header>{}));
+	WCHAR text[256];
+	int count = SendMessage(list, LB_GETCOUNT, 0, 0);
+	for (int i = 0; i < count; i++)
+	{
+		SendMessage(list, LB_GETTEXT, WPARAM(i), LPARAM(text));
+		file << text << endl;
 	}
 	file.close();
 }

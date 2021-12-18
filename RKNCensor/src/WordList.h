@@ -11,4 +11,5 @@ namespace WordList
 	void clear(HWND list);
 	void makeWordList(HWND list, std::vector<std::wstring>& words);
 	void loadWordsFromFile(HWND list);
+	void saveWordsToFile(HWND list);
 }

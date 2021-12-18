@@ -40,6 +40,9 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 	case IDC_LOADLIST_BTN:
 		WordList::loadWordsFromFile(word_list);
 		break;
+	case IDC_SAVELIST_BTN:
+		WordList::saveWordsToFile(word_list);
+		break;
 	case IDC_RADIO1:
 		EnableWindow(GetDlgItem(hwnd, IDC_VOLUME_EDIT), FALSE);
 		EnableWindow(GetDlgItem(hwnd, IDC_DIR_EDIT), FALSE);
