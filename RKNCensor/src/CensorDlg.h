@@ -44,11 +44,14 @@ class CensorDlg
 	std::wstring SelectDir();
 	FilesList GetFileListFromDirectory(const wchar_t* path, bool recursive = true);
 	void PrintIntOutputList(int index, const wchar_t* text);
+	void InterlockedPushBack(std::vector<std::wstring>& colletion, std::wstring elem);
+	HANDLE pushback_mutex;
 
 	HWND word_list;
 	HWND output_list;
 	std::vector<std::wstring> words;
-	std::map<std::wstring, int> top;
+	std::vector<std::wstring> processed_files;
+	std::map<std::wstring, unsigned int> top;
 	std::wstring out_path;
 	
 	LONG file_id = 1;

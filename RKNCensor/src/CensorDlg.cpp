@@ -121,6 +121,7 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		top.clear(); // Reset block
 		file_id = 0;
 		progress = 0;
+		processed_files.clear();
 		SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETPOS, WPARAM(0), 0);
 		SendMessage(output_list, LB_RESETCONTENT, 0, 0);
 		for (size_t i = 0; i < 3; i++)
@@ -210,7 +211,7 @@ bool CensorDlg::CensorText(wchar_t* text)
 					if (!mismatch)
 					{
 						replacement = true;
-						top[temp]++;
+						InterlockedIncrement(&top[temp]);
 						// replace with *
 						wmemset(&text[i], L'*', temp.size());
 						i += temp.size(); // move i to next symbols
@@ -267,6 +268,7 @@ void CensorDlg::ProcessFile(const wchar_t* path)
 		else
 		{
 			// filename.cpy.txt -> filename.txt
+			InterlockedPushBack(processed_files, path);
 			file_name.replace(file_name.end() - 8, file_name.end(), L".txt");
 			CopyFile(path, file_name.c_str(), FALSE);
 		}
@@ -411,6 +413,36 @@ void CensorDlg::ProcessFilesList(HWND hwnd, DirectoryMethod method)
 	kill_thread = true;
 	timer_thread.join();
 	kill_thread = false;
+
+	using namespace std;
+	wstring file_name = out_path;
+	file_name.erase(0, file_name.find_last_of(L"out") - 2);
+	file_name.erase(file_name.end() - 1);
+	file_name += L".txt";
+	wofstream file(file_name);
+	file.imbue(locale(locale(), new codecvt_utf8<wchar_t, 0x10ffff, generate_header>{}));
+	file << L"Количество обработанных файлов: " << processed_files.size() << endl;
+	for (auto& elem : processed_files)
+	{
+		file << elem << endl;
+	}
+	vector<pair<UINT, wstring>> sorted_top;
+	for (auto& elem : top)
+	{
+		sorted_top.push_back(make_pair(elem.second, elem.first));
+	}
+	sort(sorted_top.begin(), sorted_top.end());
+	file << L"ТОП запрещенных слов:" << endl;
+	vector<pair<UINT, wstring>>::reverse_iterator it = sorted_top.rbegin();
+	UINT sum = 0;
+	for (int i = 0; i < sorted_top.size(); i++)
+	{
+		sum += get<UINT>(*it);
+		file << i + 1 << ". " << get<wstring>(*it) << " - " << get<UINT>(*it) << endl;
+		it++;
+	}
+	file << L"Количество замен: " << sum;
+	file.close();
 }
 
 std::wstring CensorDlg::SelectDir()
@@ -493,6 +525,14 @@ void CensorDlg::PrintIntOutputList(int index, const wchar_t* text)
 	SendMessage(output_list, LB_DELETESTRING, WPARAM(index), 0);
 	SendMessage(output_list, LB_INSERTSTRING, WPARAM(index), LPARAM(text));
 	ReleaseMutex(mutex_output);
+}
+
+void CensorDlg::InterlockedPushBack(std::vector<std::wstring>& colletion, std::wstring elem)
+{
+	WaitForSingleObject(pushback_mutex, INFINITE);
+	pushback_mutex = CreateMutex(NULL, FALSE, NULL);
+	colletion.push_back(elem);
+	ReleaseMutex(pushback_mutex);
 }
 
 void CensorDlg::Timer(HWND hwnd)
