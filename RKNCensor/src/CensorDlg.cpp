@@ -17,7 +17,7 @@ BOOL CensorDlg::OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 	HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_ICON1));
 	SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
 	SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
-	
+
 	word_list = GetDlgItem(hwnd, IDC_CENSOR_LIST);
 	output_list = GetDlgItem(hwnd, IDC_OUTPUT_LIST);
 	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETBARCOLOR, 0, LPARAM(RGB(0, 200, 0)));
@@ -109,7 +109,7 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 			SuspendThread(threads[i].native_handle());
 		EnableWindow(GetDlgItem(hwnd, IDC_CONTINUE_BTN), TRUE);
 		EnableWindow(GetDlgItem(hwnd, IDC_PAUSE_BTN), FALSE);
-		
+
 		SendMessage(output_list, LB_DELETESTRING, WPARAM(0), 0);
 		SendMessage(output_list, LB_INSERTSTRING, WPARAM(0), LPARAM(L"œ¿”«¿."));
 		break;
@@ -135,7 +135,7 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		PrintIntOutputList(0, L"œŒÀ”◊≈Õ»≈ —œ»— ¿ ‘¿…ÀŒ¬...");
 		timer_thread = std::thread(&CensorDlg::Timer, this, hwnd);
 		out_path = getOutPath(hwnd);
-		
+
 		DirectoryMethod method;
 		for (int i = 0; i < 3; i++)
 		{
@@ -145,7 +145,7 @@ void CensorDlg::Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 				break;
 			}
 		}
-		
+
 
 		process_thread = std::thread(&CensorDlg::ProcessFilesList, this, hwnd, method);
 		EnableWindow(GetDlgItem(hwnd, IDC_START_BTN), FALSE); // disable start button
@@ -162,7 +162,7 @@ std::wstring CensorDlg::getOutPath(HWND hwnd)
 	{
 		if (path[size] != '\\' && path[size] != '/')
 			path[size] = '\\';
-		path[size+1] = 0;
+		path[size + 1] = 0;
 		WCHAR time_str[32];
 		time_t rawtime = time(0);
 		tm time;
@@ -317,7 +317,7 @@ void CensorDlg::ProcessFilesList(HWND hwnd, DirectoryMethod method)
 			}
 		}
 	}
-		break;
+	break;
 	case CensorDlg::DirectoryMethod::VOLUME:
 	{
 		WCHAR volume[2];
@@ -348,7 +348,7 @@ void CensorDlg::ProcessFilesList(HWND hwnd, DirectoryMethod method)
 			}
 		}
 	}
-		break;
+	break;
 	case CensorDlg::DirectoryMethod::DIR:
 	{
 		WCHAR path[256];
@@ -356,7 +356,7 @@ void CensorDlg::ProcessFilesList(HWND hwnd, DirectoryMethod method)
 		files = GetFileListFromDirectory(path);
 	}
 	}
-	
+
 	if (kill_thread)
 	{
 		timer_thread.join();
@@ -369,7 +369,7 @@ void CensorDlg::ProcessFilesList(HWND hwnd, DirectoryMethod method)
 			PrintIntOutputList(0, L"œ–≈–¬¿ÕŒ.");
 			process_thread.detach();
 		}
-		
+
 		return;
 	}
 
@@ -422,7 +422,7 @@ void CensorDlg::ProcessFilesList(HWND hwnd, DirectoryMethod method)
 		SendMessage(output_list, LB_INSERTSTRING, WPARAM(1), LPARAM(str));
 		process_thread.detach();
 	}
-		
+
 	kill_thread = true;
 	timer_thread.join();
 	kill_thread = false;
@@ -599,6 +599,6 @@ BOOL CensorDlg::DlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	}
-	
+
 	return FALSE;
 }
