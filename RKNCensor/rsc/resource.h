@@ -14,6 +14,8 @@
 #define IDC_OUTDIR_BTN                  11
 #define IDC_VIEWDIR_BTN2                12
 #define IDD_DIALOG1                     101
+#define IDB_PNG1                        103
+#define IDI_ICON1                       104
 #define IDC_CENSOR_LIST                 1001
 #define IDC_WORD_EDIT                   1002
 #define IDC_RADIO1                      1003
@@ -29,7 +31,6 @@
 #define IDC_DELWORD                     1013
 #define IDC_OUTPUT_GROUP                1014
 #define IDC_SEARCH_GROUP                1015
-#define IDC_SEARCH_GROUP2               1016
 #define IDC_OUTDIR_GROUP                1016
 #define IDC_OUTDIR_EDIT                 1020
 
@@ -37,7 +38,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        103
+#define _APS_NEXT_RESOURCE_VALUE        105
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1016
 #define _APS_NEXT_SYMED_VALUE           101

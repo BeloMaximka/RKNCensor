@@ -14,6 +14,10 @@ void CensorDlg::OnClose(HWND hwnd)
 
 BOOL CensorDlg::OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 {
+	HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_ICON1));
+	SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+	SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+	
 	word_list = GetDlgItem(hwnd, IDC_CENSOR_LIST);
 	output_list = GetDlgItem(hwnd, IDC_OUTPUT_LIST);
 	SendDlgItemMessage(hwnd, IDC_PROGRESS1, PBM_SETBARCOLOR, 0, LPARAM(RGB(0, 200, 0)));
@@ -409,7 +413,16 @@ void CensorDlg::ProcessFilesList(HWND hwnd, DirectoryMethod method)
 		threads[i].join();
 	}
 	if (!kill_thread)
+	{
+		SendMessage(output_list, LB_DELETESTRING, WPARAM(0), 0);
+		SendMessage(output_list, LB_INSERTSTRING, WPARAM(0), LPARAM(L"ЗАВЕРШЕНО."));
+		WCHAR str[64];
+		wsprintf(str, L"Обработано файлов: %d из %d", progress, files_count);
+		SendMessage(output_list, LB_DELETESTRING, WPARAM(1), 0);
+		SendMessage(output_list, LB_INSERTSTRING, WPARAM(1), LPARAM(str));
 		process_thread.detach();
+	}
+		
 	kill_thread = true;
 	timer_thread.join();
 	kill_thread = false;

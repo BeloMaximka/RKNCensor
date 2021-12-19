@@ -5,5 +5,6 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPTSTR lpszCmdLine, int nC
 {
 	setlocale(0, "");
 	CensorDlg dlg;
-	return DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), NULL, CensorDlg::DlgProc);
+	DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), NULL, CensorDlg::DlgProc);
+	return 0;
 }

@@ -167,6 +167,9 @@
   <ItemGroup>
     <ResourceCompile Include="rsc\RKNCensor.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="rsc\icon.ico" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

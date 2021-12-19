@@ -112,7 +112,7 @@ std::wifstream openTextFile(const wchar_t* path, std::locale& out_loc)
 	if (!file.is_open())
 		return file;
 
-	std::locale loc("Russian.1251");
+	std::locale loc(".1251");
 	out_loc = loc;
 	switch (getTextFileEncoding(path))
 	{
