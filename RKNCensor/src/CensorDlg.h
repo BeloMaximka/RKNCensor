@@ -71,5 +71,5 @@ class CensorDlg
 public:
 	CensorDlg();
 	//~CensorDlg();
-	static BOOL CALLBACK DlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+	static INT_PTR CALLBACK DlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
